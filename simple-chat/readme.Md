@@ -32,5 +32,5 @@ A robust, real-time private messaging application built with **Java Spring Boot*
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/simple-chat.git
+git clone https://github.com/sura721/java-chat-app
 cd simple-chat
