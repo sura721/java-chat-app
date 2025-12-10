@@ -4,7 +4,7 @@
 
 A robust, real-time private messaging application built with **Java Spring Boot** and **WebSockets**. It features a modern **Dark Mode UI**, persistent chat history via **MongoDB**, and is containerized with **Docker** for easy deployment.
 
-![App Screenshot](https://via.placeholder.com/800x400?text=Upload+Your+App+Screenshot+Here)
+![App Screenshot](https://img.sanishtech.com/u/eadb03b7cf5d9bd6de4384702b2d9831.png)
 
 ## ✨ Key Features
 
