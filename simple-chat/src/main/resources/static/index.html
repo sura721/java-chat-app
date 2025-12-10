@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>chat-app</title> <!-- CHANGED TITLE -->
+    <title>chat-app</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
@@ -18,8 +18,8 @@
         button:hover { background: #008f6f; }
         .link { color: #00a884; font-size: 13px; cursor: pointer; margin-top: 15px; display: block; }
         
-        /* ERROR TEXT STYLE */
-        .error-text { color: #ff5252; font-size: 14px; margin-top: 10px; font-weight: bold; }
+        /* ERROR TEXT STYLE (Visible Red Warning) */
+        .error-text { color: #ff5252; font-size: 14px; margin-top: 15px; font-weight: bold; display: block; }
 
         /* APP LAYOUT */
         .app-container { display: flex; width: 950px; height: 90vh; background: #1e1e1e; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
@@ -60,7 +60,7 @@
         <input type="password" id="password" placeholder="Password">
         <button onclick="login()">Login</button>
         
-        <!-- NEW ERROR MESSAGE -->
+        <!-- ERROR MESSAGE (Hidden by default) -->
         <p id="login-error" class="error-text hidden">Invalid Username or Password!</p>
 
         <span class="link" onclick="toggleScreen('signup')">Create Account</span>
@@ -113,7 +113,7 @@
             document.getElementById('app-screen').classList.add('hidden');
             document.getElementById(screen + '-screen').classList.remove('hidden');
             
-            // Hide error message when switching screens
+            // Hide error when switching screens
             document.getElementById('login-error').classList.add('hidden');
         }
 
@@ -122,24 +122,31 @@
             const p = document.getElementById('password').value;
             const errorText = document.getElementById('login-error');
             
-            // Reset error
             errorText.classList.add('hidden');
 
-            const res = await fetch('/user/login', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: u, password: p})
-            });
-            
-            const user = await res.json();
-            
-            if (user) {
-                currentUser = user;
-                document.getElementById('my-name').innerText = user.username;
-                toggleScreen('app');
-                connectSocket();
-                loadUsers();
-            } else { 
-                // Show Error Message
+            try {
+                const res = await fetch('/user/login', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: u, password: p})
+                });
+
+                // Check if response has text before parsing JSON
+                const text = await res.text();
+                const user = text ? JSON.parse(text) : null;
+                
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('my-name').innerText = user.username;
+                    toggleScreen('app');
+                    connectSocket();
+                    loadUsers();
+                } else {
+                    // Show Error (Backend returned null)
+                    errorText.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error(e);
+                // Show Error (Network error or parsing error)
                 errorText.classList.remove('hidden');
             }
         }
@@ -194,7 +201,6 @@
         }
 
         function connectSocket() {
-            // Updated to handle both localhost and cloud deployment
             const socket = new SockJS('/ws');
             stompClient = Stomp.over(socket);
             stompClient.connect({}, frame => {
