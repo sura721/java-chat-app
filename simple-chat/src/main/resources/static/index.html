@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dark Chat</title>
+    <title>chat-app</title> <!-- CHANGED TITLE -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
@@ -17,6 +17,9 @@
         button { width: 100%; padding: 12px; background: #00a884; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
         button:hover { background: #008f6f; }
         .link { color: #00a884; font-size: 13px; cursor: pointer; margin-top: 15px; display: block; }
+        
+        /* ERROR TEXT STYLE */
+        .error-text { color: #ff5252; font-size: 14px; margin-top: 10px; font-weight: bold; }
 
         /* APP LAYOUT */
         .app-container { display: flex; width: 950px; height: 90vh; background: #1e1e1e; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
@@ -31,7 +34,7 @@
         .avatar { width: 40px; height: 40px; background: #555; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px; font-weight: bold; color: white; }
         
         /* CHAT AREA */
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #0b141a; /* Very dark blue/black */ }
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: #0b141a; }
         .chat-header { padding: 15px; background: #2b2b2b; border-bottom: 1px solid #333; display: flex; align-items: center; }
         .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
         .message { max-width: 70%; padding: 8px 12px; border-radius: 8px; font-size: 14px; position: relative; }
@@ -43,7 +46,6 @@
         
         .empty-state { margin: auto; color: #888; }
         
-        /* Scrollbar styling */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #222; }
@@ -53,10 +55,14 @@
 
     <!-- 1. LOGIN -->
     <div id="login-screen" class="auth-box">
-        <h2 style="color: white;">Dark Chat</h2>
+        <h2 style="color: white;">Chat App</h2>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
         <button onclick="login()">Login</button>
+        
+        <!-- NEW ERROR MESSAGE -->
+        <p id="login-error" class="error-text hidden">Invalid Username or Password!</p>
+
         <span class="link" onclick="toggleScreen('signup')">Create Account</span>
     </div>
 
@@ -71,7 +77,6 @@
 
     <!-- 3. MAIN APP -->
     <div id="app-screen" class="app-container hidden">
-        
         <div class="sidebar">
             <div class="sidebar-header">
                 <span id="my-name" style="font-weight: bold;">Me</span>
@@ -91,7 +96,6 @@
             </div>
 
             <div id="input-area" class="input-area hidden">
-                <!-- ENTER KEY LOGIC HERE -->
                 <input type="text" id="message-input" placeholder="Type a message..." onkeypress="handleEnter(event)">
                 <button onclick="sendMessage()" style="width: 60px;">➤</button>
             </div>
@@ -108,23 +112,36 @@
             document.getElementById('signup-screen').classList.add('hidden');
             document.getElementById('app-screen').classList.add('hidden');
             document.getElementById(screen + '-screen').classList.remove('hidden');
+            
+            // Hide error message when switching screens
+            document.getElementById('login-error').classList.add('hidden');
         }
 
         async function login() {
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
+            const errorText = document.getElementById('login-error');
+            
+            // Reset error
+            errorText.classList.add('hidden');
+
             const res = await fetch('/user/login', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({username: u, password: p})
             });
+            
             const user = await res.json();
+            
             if (user) {
                 currentUser = user;
                 document.getElementById('my-name').innerText = user.username;
                 toggleScreen('app');
                 connectSocket();
                 loadUsers();
-            } else { alert("Invalid login"); }
+            } else { 
+                // Show Error Message
+                errorText.classList.remove('hidden');
+            }
         }
 
         async function signup() {
@@ -164,9 +181,8 @@
             document.getElementById('chat-name').innerText = username;
             document.getElementById('chat-avatar').innerText = username.charAt(0).toUpperCase();
             
-            // --- LOAD HISTORY (Persistence Fix) ---
             const container = document.getElementById('chat-messages');
-            container.innerHTML = ''; // Clear previous view
+            container.innerHTML = ''; 
             
             const res = await fetch(`/messages/${currentUser.username}/${selectedUser}`);
             const messages = await res.json();
@@ -178,6 +194,7 @@
         }
 
         function connectSocket() {
+            // Updated to handle both localhost and cloud deployment
             const socket = new SockJS('/ws');
             stompClient = Stomp.over(socket);
             stompClient.connect({}, frame => {
@@ -190,7 +207,6 @@
             });
         }
 
-        // --- ENTER KEY HANDLER ---
         function handleEnter(event) {
             if (event.key === "Enter") {
                 sendMessage();
